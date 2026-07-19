@@ -110,7 +110,7 @@ const sock = makeWASocket({
     auth:state,
 
     logger:P({
-        level:"silent"
+        level:"info"
     })
 
 });
