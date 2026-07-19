@@ -1,4 +1,3 @@
-
 const express = require("express");
 const qrcode = require("qrcode-terminal");
 const P = require("pino");
