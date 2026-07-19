@@ -139,11 +139,11 @@ const {
     lastDisconnect
 }=update;
     
-if(qr){
-console.log("Scan QR Code:");
-currentQR = qr;
-qrcode.generate(qr,{
-    small:true
+if (qr) {
+    console.log("New QR Code generated");
+
+    currentQR = await QRCode.toDataURL(qr);
+}
 });
 
     }
