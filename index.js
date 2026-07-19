@@ -184,16 +184,22 @@ lastDisconnect?.error?.output?.statusCode
 if(reconnect){
 
     console.log(
-        "Reconnecting..."
+        "Reconnecting in 5 seconds..."
     );
 
-    startBot();
+
+    setTimeout(()=>{
+
+        startBot();
+
+    },5000);
+
 
 }
 else{
 
     console.log(
-        "Logged out"
+        "Logged out. Scan QR again."
     );
 
 }
