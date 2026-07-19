@@ -121,75 +121,55 @@ saveCreds
 // =======================
 
 sock.ev.on(
-"connection.update",
-async (update) => {
+    "connection.update",
+    async (update) => {
+
+        const {
+            connection,
+            qr,
+            lastDisconnect
+        } = update;
 
 
-const {
-    connection,
-    qr,
-    lastDisconnect
-}=update;
-    
-if (qr) {
-    console.log("New QR Code generated");
+        if (qr) {
+            console.log("New QR Code generated");
 
-    currentQR = await qrcode.toDataURL(qr);
-}
-});
-
-    
-
-if(connection==="open"){
-
-    currentQR = "";
-
-    console.log(
-        "WhatsApp Connected ✅"
-    );
-
-}
+            currentQR = await qrcode.toDataURL(qr);
+        }
 
 
+        if (connection === "open") {
 
-if(connection==="close"){
+            currentQR = "";
 
-
-const reconnect =
-lastDisconnect?.error?.output?.statusCode
-!== DisconnectReason.loggedOut;
-
+            console.log("WhatsApp Connected ✅");
+        }
 
 
-if(reconnect){
+        if (connection === "close") {
 
-    console.log(
-        "Reconnecting in 5 seconds..."
-    );
-
-
-    setTimeout(()=>{
-
-        startBot();
-
-    },5000);
+            const reconnect =
+                lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
 
 
-}
-else{
+            if (reconnect) {
 
-    console.log(
-        "Logged out. Scan QR again."
-    );
+                console.log("Reconnecting in 5 seconds...");
 
-}
+                setTimeout(() => {
+                    startBot();
+                }, 5000);
 
+            } else {
 
-}
+                console.log("Logged out. Scan QR again.");
 
+            }
 
+        }
 
-});
+    }
+);
 
 
 
