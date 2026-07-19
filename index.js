@@ -33,36 +33,28 @@ app.get("/health",(req,res)=>{
 
 // QR browser page
 
-app.get("/qr",(req,res)=>{
+app.get("/qr", (req, res) => {
 
-    if(!currentQR){
-
-        return res.send(
-            "No QR available. Bot may already be connected."
-        );
-
+    if (!currentQR) {
+        return res.send("No QR available. Bot may already be connected.");
     }
 
-
     res.send(`
-    <html>
-    <body style="text-align:center;font-family:Arial">
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WhatsApp QR</title>
+</head>
+<body style="text-align:center;font-family:Arial;margin-top:40px;">
 
     <h2>WhatsApp QR Code</h2>
 
-    <p>
-    WhatsApp → Linked Devices → Link a Device
-    </p>
+    <p>WhatsApp → Linked Devices → Link a Device</p>
 
-    <pre style="
-    font-size:8px;
-    line-height:8px;
-    ">
-${currentQR}
-    </pre>
+    <img src="${currentQR}" alt="WhatsApp QR Code" width="300">
 
-    </body>
-    </html>
+</body>
+</html>
     `);
 
 });
