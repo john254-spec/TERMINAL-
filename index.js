@@ -138,24 +138,18 @@ const {
     connection,
     qr,
     lastDisconnect
-}=update;
+}=update
+    if(qr){
 
+console.log("Scan QR Code:");
 
+currentQR = qr;
 
-if(qr){
+qrcode.generate(qr,{
+    small:true
+});
 
-    console.log("Scan QR Code:");
-
-    currentQR = qr;
-
-
-    qrcode.generate(
-        qr,
-        {
-            small:true
-        }
-    );
-
+    }
 }
 
 
