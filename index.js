@@ -1,6 +1,8 @@
+
 const express = require("express");
 const qrcode = require("qrcode-terminal");
 const P = require("pino");
+const fs = require("fs");
 
 const {
     default: makeWASocket,
@@ -15,9 +17,13 @@ const {
 
 const app = express();
 
+let currentQR = "";
+
+
 app.get("/", (req,res)=>{
     res.send("WhatsApp Bot Running ✅");
 });
+
 
 app.get("/health",(req,res)=>{
     res.json({
@@ -26,12 +32,51 @@ app.get("/health",(req,res)=>{
 });
 
 
+// QR browser page
+
+app.get("/qr",(req,res)=>{
+
+    if(!currentQR){
+
+        return res.send(
+            "No QR available. Bot may already be connected."
+        );
+
+    }
+
+
+    res.send(`
+    <html>
+    <body style="text-align:center;font-family:Arial">
+
+    <h2>WhatsApp QR Code</h2>
+
+    <p>
+    WhatsApp → Linked Devices → Link a Device
+    </p>
+
+    <pre style="
+    font-size:8px;
+    line-height:8px;
+    ">
+${currentQR}
+    </pre>
+
+    </body>
+    </html>
+    `);
+
+});
+
+
+
 app.listen(
     process.env.PORT || 3000,
     ()=>{
         console.log("Server running");
     }
 );
+
 
 
 // =======================
@@ -45,7 +90,7 @@ const messageStore = new Map();
 
 
 // =======================
-// Start WhatsApp
+// Start Bot
 // =======================
 
 async function startBot(){
@@ -79,6 +124,7 @@ saveCreds
 
 
 
+
 // =======================
 // Connection
 // =======================
@@ -98,14 +144,17 @@ const {
 
 if(qr){
 
-console.log("Scan QR code:");
+    console.log("Scan QR Code:");
 
-qrcode.generate(
-    qr,
-    {
-        small:true
-    }
-);
+    currentQR = qr;
+
+
+    qrcode.generate(
+        qr,
+        {
+            small:true
+        }
+    );
 
 }
 
@@ -113,12 +162,13 @@ qrcode.generate(
 
 if(connection==="open"){
 
-console.log(
-"WhatsApp Connected ✅"
-);
+    currentQR = "";
+
+    console.log(
+        "WhatsApp Connected ✅"
+    );
 
 }
-
 
 
 
@@ -133,9 +183,21 @@ lastDisconnect?.error?.output?.statusCode
 
 if(reconnect){
 
-startBot();
+    console.log(
+        "Reconnecting..."
+    );
+
+    startBot();
 
 }
+else{
+
+    console.log(
+        "Logged out"
+    );
+
+}
+
 
 }
 
@@ -146,10 +208,10 @@ startBot();
 
 
 
+
 // =======================
 // Messages
 // =======================
-
 
 sock.ev.on(
 "messages.upsert",
@@ -176,8 +238,6 @@ msg.message.extendedTextMessage?.text ||
 
 
 
-// save messages
-
 messageStore.set(
 msg.key.id,
 {
@@ -201,7 +261,6 @@ text.trim().split(" ")[0];
 switch(command){
 
 
-
 case "!help":
 
 await sock.sendMessage(
@@ -223,6 +282,7 @@ Commands:
 !remove number
 !promote
 !demote
+!deleteaccount
 `
 }
 );
@@ -231,18 +291,16 @@ break;
 
 
 
-
 case "!status":
 
 await sock.sendMessage(
 jid,
 {
-text:"Bot running ✅"
+text:"Bot online ✅"
 }
 );
 
 break;
-
 
 
 
@@ -252,16 +310,13 @@ await sock.sendMessage(
 jid,
 {
 text:
-`
-Bot WhatsApp ID:
+`Bot ID:
 
-${sock.user.id}
-`
+${sock.user.id}`
 }
 );
 
 break;
-
 
 
 
@@ -273,12 +328,9 @@ jid,
 text:
 `
 Chat ID:
-
 ${jid}
 
-
 User ID:
-
 ${msg.key.participant || jid}
 `
 }
@@ -288,13 +340,10 @@ break;
 
 
 
-
 case "!groups":
-
 
 const groups =
 await sock.groupFetchAllParticipating();
-
 
 
 let groupList =
@@ -304,10 +353,8 @@ let groupList =
 Object.values(groups)
 .forEach(group=>{
 
-
 groupList +=
 `
-Name:
 ${group.subject}
 
 ID:
@@ -317,7 +364,6 @@ ${group.id}
 `;
 
 });
-
 
 
 await sock.sendMessage(
@@ -331,20 +377,15 @@ break;
 
 
 
-
-
 case "!members":
-
 
 
 if(!jid.endsWith("@g.us")){
 
-
 await sock.sendMessage(
 jid,
 {
-text:
-"Use this inside a group only."
+text:"Use this inside a group."
 }
 );
 
@@ -358,13 +399,12 @@ const metadata =
 await sock.groupMetadata(jid);
 
 
-
-let memberList =
+let members =
 `
 Group:
 ${metadata.subject}
 
-Group ID:
+ID:
 ${metadata.id}
 
 
@@ -374,11 +414,9 @@ Members:
 
 
 
-metadata.participants
-.forEach(member=>{
+metadata.participants.forEach(member=>{
 
-
-memberList +=
+members +=
 `${member.id}\n`;
 
 });
@@ -388,7 +426,7 @@ memberList +=
 await sock.sendMessage(
 jid,
 {
-text:memberList
+text:members
 }
 );
 
@@ -397,34 +435,26 @@ break;
 
 
 
-
-
 case "!users":
 
 
-let userList =
-"WhatsApp Users:\n\n";
+let users =
+"Known WhatsApp Users:\n\n";
 
 
-const contacts =
-Object.values(sock.contacts || {});
-
-
-
-contacts.forEach(contact=>{
+Object.values(sock.contacts || {})
+.forEach(contact=>{
 
 
 if(contact.id){
 
-userList +=
-`
-Name:
-${contact.name || "Unknown"}
+users +=
+`${contact.name || "Unknown"}
 
-ID:
 ${contact.id}
 
 ----------------
+
 `;
 
 }
@@ -436,7 +466,7 @@ ${contact.id}
 await sock.sendMessage(
 jid,
 {
-text:userList
+text:users
 }
 );
 
@@ -445,41 +475,31 @@ break;
 
 
 
-
-
 case "!send":
 
-
-const message =
+const sendText =
 text.replace(
 "!send",
 ""
 ).trim();
 
 
-
 await sock.sendMessage(
 jid,
 {
-text:message
+text:sendText
 }
 );
-
 
 break;
 
 
 
-
-
 case "!add":
-
 
 const number =
 text.split(" ")[1];
 
-
-if(number){
 
 savedUsers.add(number);
 
@@ -487,22 +507,15 @@ savedUsers.add(number);
 await sock.sendMessage(
 jid,
 {
-text:
-`${number} added`
+text:`${number} added`
 }
 );
-
-}
-
 
 break;
 
 
 
-
-
 case "!remove":
-
 
 const remove =
 text.split(" ")[1];
@@ -514,8 +527,7 @@ savedUsers.delete(remove);
 await sock.sendMessage(
 jid,
 {
-text:
-`${remove} removed`
+text:`${remove} removed`
 }
 );
 
@@ -523,13 +535,9 @@ break;
 
 
 
-
-
 case "!promote":
 
-
 if(jid.endsWith("@g.us")){
-
 
 await sock.groupParticipantsUpdate(
 jid,
@@ -539,29 +547,15 @@ msg.key.participant
 "promote"
 );
 
-
-await sock.sendMessage(
-jid,
-{
-text:"Promoted ✅"
 }
-);
-
-
-}
-
 
 break;
 
 
 
-
-
 case "!demote":
 
-
 if(jid.endsWith("@g.us")){
-
 
 await sock.groupParticipantsUpdate(
 jid,
@@ -571,14 +565,36 @@ msg.key.participant
 "demote"
 );
 
+}
+
+break;
+
+
+
+case "!deleteaccount":
+
 
 await sock.sendMessage(
 jid,
 {
-text:"Demoted"
+text:
+"Deleting bot WhatsApp session..."
 }
 );
 
+
+await sock.logout();
+
+
+if(fs.existsSync("auth_info")){
+
+fs.rmSync(
+"auth_info",
+{
+recursive:true,
+force:true
+}
+);
 
 }
 
@@ -594,10 +610,10 @@ break;
 
 
 
+
 // =======================
 // Deleted Message Recovery
 // =======================
-
 
 sock.ev.on(
 "messages.update",
@@ -611,25 +627,22 @@ if(update.update.message===null){
 
 
 const old =
-messageStore.get(update.key.id);
-
+messageStore.get(
+update.key.id
+);
 
 
 if(old){
-
 
 await sock.sendMessage(
 old.jid,
 {
 text:
-`
-Recovered deleted message:
+`Recovered deleted message:
 
-${old.text}
-`
+${old.text}`
 }
 );
-
 
 }
 
