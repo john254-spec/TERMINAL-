@@ -134,11 +134,11 @@ const {
 if (qr) {
     console.log("New QR Code generated");
 
-    currentQR = await QRCode.toDataURL(qr);
+    currentQR = await qrcode.toDataURL(qr);
 }
 });
 
-    }
+    
 
 if(connection==="open"){
 
