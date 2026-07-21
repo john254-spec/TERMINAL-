@@ -123,6 +123,7 @@ saveCreds
 sock.ev.on(
     "connection.update",
     async (update) => {
+     console.log(update);
 
         const {
             connection,
