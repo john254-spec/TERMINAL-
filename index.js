@@ -1,4 +1,5 @@
 const express = require("express");
+setupTikTokAuth(app);
 const setupTikTokAuth = require("./tiktok-auth");
 const qrcode = require("qrcode");
 const P = require("pino");
